@@ -40,14 +40,19 @@
     }
 
     .logo {
-      font-family: 'Clash Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 1.1rem;
-      letter-spacing: -0.02em;
-      color: var(--white);
       text-decoration: none;
       opacity: 0;
       animation: fadeIn 0.6s 0.2s ease forwards;
+      display: inline-flex;
+      align-items: center;
+      width: clamp(104px, 10vw, 136px);
+      line-height: 1;
+    }
+
+    .logo img {
+      display: block;
+      width: 100%;
+      height: auto;
     }
 
     .nav-links {
@@ -323,7 +328,9 @@
 
   <!-- ─── NAVBAR ─── -->
   <nav>
-    <a class="logo" href="#">NovusUI</a>
+    <a class="logo" href="#" aria-label="NovusUI home">
+      <img src="assets/novusui-logo.png" width="408" height="88" alt="NovusUI" fetchpriority="high">
+    </a>
 
     <div class="nav-links">
       <a href="#" class="active">Home</a>
@@ -618,10 +625,26 @@
     }
   </style>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     (function () {
       const canvas   = document.getElementById('cubeCanvas');
+      if (!canvas) return;
+
+      function loadThree() {
+        if (window.THREE) return Promise.resolve();
+
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      function initCube() {
+      const THREE = window.THREE;
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(320, 320);
@@ -862,6 +885,25 @@
         renderer.render(scene, camera);
       }
       animate();
+      }
+
+      function startCube() {
+        loadThree().then(initCube).catch(() => {});
+      }
+
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (!entries[0] || !entries[0].isIntersecting) return;
+          observer.disconnect();
+          startCube();
+        }, { rootMargin: '240px' });
+
+        observer.observe(canvas);
+      } else if ('requestIdleCallback' in window) {
+        requestIdleCallback(startCube, { timeout: 2500 });
+      } else {
+        window.addEventListener('load', startCube, { once: true });
+      }
     })();
   </script>
 
@@ -1536,13 +1578,13 @@
             <div class="project-frame">
               <div class="project-browser">
                 <div class="project-dots"><span></span><span></span><span></span></div>
-                <div class="project-url">quizzo.gathergo.events</div>
+                <div class="project-url">cachetrealtorsng.com</div>
               </div>
 
               <div class="project-viewport" data-project-live-viewport>
                 <div class="project-overlay">
                   <span class="project-state project-state-live">Live Preview</span>
-                  <a class="project-open-link" href="https://quizzo.gathergo.events/" target="_blank" rel="noreferrer">Open site</a>
+                  <a class="project-open-link" href="https://www.cachetrealtorsng.com/" target="_blank" rel="noreferrer">Open site</a>
                 </div>
                 <div class="project-interact-gate" data-project-gate>
                   <div class="project-interact-card">
@@ -1552,8 +1594,8 @@
                 </div>
                 <iframe
                   class="project-embed"
-                  data-project-src="https://quizzo.gathergo.events/"
-                  title="Quizzo live project preview"
+                  data-project-src="https://www.cachetrealtorsng.com/"
+                  title="Cachet Realtors live project preview"
                   loading="lazy"
                   referrerpolicy="strict-origin-when-cross-origin"
                 ></iframe>
@@ -1759,15 +1801,15 @@
 
           <article class="project-detail" data-project-detail>
             <span class="project-detail-kicker">Live website</span>
-            <h3 class="project-detail-title">Quizzo</h3>
-            <p class="project-detail-text">A standalone Quizzo Live deployment under the GatherGo ecosystem, positioned as its own interactive experience rather than just another screen inside the broader events product.</p>
+            <h3 class="project-detail-title">Cachet Realtors</h3>
+            <p class="project-detail-text">A real estate web presence for Cachet Realtors, built to give property seekers and clients a direct branded path into the company’s listings, trust signals, and inquiry flow.</p>
             <div class="project-detail-tags">
-              <span>Live quiz</span>
-              <span>GatherGo stack</span>
-              <span>Sub-product</span>
+              <span>Real estate</span>
+              <span>Property site</span>
+              <span>Lead path</span>
             </div>
             <div class="project-detail-actions">
-              <a class="project-detail-link" href="https://quizzo.gathergo.events/" target="_blank" rel="noreferrer">Open live project</a>
+              <a class="project-detail-link" href="https://www.cachetrealtorsng.com/" target="_blank" rel="noreferrer">Open live project</a>
               <span class="project-detail-note">Use link if framing is blocked</span>
             </div>
           </article>
@@ -1862,7 +1904,7 @@
             </button>
             <button class="projects-jump" data-project-jump="3" type="button">
               <span class="projects-jump-index">04</span>
-              <span class="projects-jump-label">Quizzo</span>
+              <span class="projects-jump-label">Cachet</span>
             </button>
             <button class="projects-jump" data-project-jump="4" type="button">
               <span class="projects-jump-index">05</span>
@@ -2704,6 +2746,7 @@
     const progress = document.getElementById('projectsProgress');
     let index = 0;
     let interactionUnlocked = false;
+    let sectionVisible = false;
 
     function syncInteractionState() {
       liveViewports.forEach(viewport => {
@@ -2711,16 +2754,21 @@
       });
     }
 
+    function loadActivePreview() {
+      if (!sectionVisible) return;
+
+      const activeSlide = slides[index];
+      const frame = activeSlide && activeSlide.querySelector('.project-embed[data-project-src]');
+      if (frame && !frame.getAttribute('src')) {
+        frame.setAttribute('src', frame.dataset.projectSrc);
+      }
+    }
+
     function render(nextIndex) {
       index = (nextIndex + slides.length) % slides.length;
 
       slides.forEach((slide, slideIndex) => {
         slide.classList.toggle('is-active', slideIndex === index);
-
-        const frame = slide.querySelector('.project-embed[data-project-src]');
-        if (frame && slideIndex === index && !frame.getAttribute('src')) {
-          frame.setAttribute('src', frame.dataset.projectSrc);
-        }
       });
 
       details.forEach((detail, detailIndex) => {
@@ -2732,6 +2780,7 @@
       });
 
       syncInteractionState();
+      loadActivePreview();
 
       if (current) current.textContent = String(index + 1).padStart(2, '0');
       if (progress) progress.style.width = `${((index + 1) / slides.length) * 100}%`;
@@ -2760,7 +2809,13 @@
 
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries;
-      if (!entry || entry.isIntersecting) return;
+      if (!entry) return;
+
+      sectionVisible = entry.isIntersecting;
+      if (sectionVisible) {
+        loadActivePreview();
+        return;
+      }
 
       interactionUnlocked = false;
       syncInteractionState();
